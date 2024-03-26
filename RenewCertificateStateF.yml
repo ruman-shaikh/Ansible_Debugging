@@ -1,0 +1,56 @@
+# Sample playbook: To create CSR and print CSR from the DS8K
+# API docs: https://www.ibm.com/docs/en/ds8900/9.1?topic=reference-restful-api
+# Renewcert: https://community.ibm.com/community/user/storage/blogs/randy-blea1/2023/07/12/latest-updates-to-ds8900f-rest-interface-automatin
+#- meta: end_play
+
+---
+- name: Renew certificate on DS8K 8900 Systems
+  hosts: localhost
+  vars_files:
+  vars:
+    "test_content": "BEGIN"
+
+  tasks:
+    - name: Grab credentials to log into DS8K
+      ansible.builtin.set_fact:
+       # cacheable: true
+        username: "{{ lookup('community.general.onepassword', 'IBM DS8K API', field='username') }}"
+        password: "{{ lookup('community.general.onepassword', 'IBM DS8K API') }}"
+        base_url: "{{ lookup('community.general.onepassword', 'IBM DS8K API', field='hostname', vault='') }}"
+
+    - name: "The username is {{ username }}"
+      ansible.builtin.debug:
+        msg: "My user is {{ username }}"
+
+    - name: Grab an API Authentication Token
+      ansible.builtin.uri:
+        url: "{{ base_url }}/tokens"
+        validate_certs: false
+        method: POST
+        body_format: json
+         # body: "{{ lookup('ansible.builtin.file', 'token.json') }}"
+        body: '{"request":{"params":{"username": "{{ username }}","password": "{{ password }}"}}}'
+      register: auth_token
+
+    - name: Print token
+      ansible.builtin.debug:
+        msg: "{{ auth_token.json.token }}"
+
+    - name: Try to generate a new CSR
+      ansible.builtin.uri:
+        url: "{{ base_url }}/hmc/certificate/csr"
+        validate_certs: false
+        method: POST
+        return_content: true
+        url_username: "{{ username }}"
+        url_password: "{{ password }}"
+        body_format: json
+        body: "{{ lookup('ansible.builtin.file', 'newcert.json') }}"
+        headers:
+          X-Auth-Token: "{{ auth_token.json.token.token }}"
+      register: newcsr
+
+    - name: Print CSR API results
+      ansible.builtin.debug:
+        msg: "{{ newcsr.content }}"
+...
