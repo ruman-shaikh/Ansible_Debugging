@@ -58,8 +58,9 @@
           when: cert_check.get_output_lines[0][0] != 'CERTAUTH(CERTAUTH(owner_id,cert_label)'.upper()
 
     - name: Run Health Checker via operator command.
-      ibm.ibm_zos_operator.operator_command:
-        cmd: health-check
+      ibm.ibm_zos_core.zos_operator:
+        cmd: "F HZSPROC,RUN,CHECK=({{ check_name }})"
+      changed_when: false
     
 
 
