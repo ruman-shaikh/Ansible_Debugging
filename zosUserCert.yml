@@ -1,0 +1,69 @@
+###############################################################################
+# © Copyright IBM Corporation 2020, 2021 
+###############################################################################
+
+- hosts: zos_host
+  collections:
+    - ibm.ibm_zos_core
+  gather_facts: false
+  environment: "{{ environment_vars }}"
+  vars:
+    owner_id: "{{ owner_id_survey | default('IBMUSER') }}"
+    cert_label: "{{ cert_label_survey | default('TESTUSER') }}"
+    sign_label: "{{ sign_label_survey | default('TEST CA') }}"
+    cn: "{{ cn_survey }}"
+    ou: "{{ ou_survey | default('ANSIBLE CORE') }}"
+    country: "{{ country_survey | default('US') }}"
+    expiry_date: "{{ expiry_date_survey | default('') }}"
+    keyring: "{{ keyring_survey | default('SharedRing1') }}"
+    check_name: "{{ check_name_survey | default('IBMRACF,RACF_CERTIFICATE_EXPIRATION') }}"
+
+  tasks:
+    - name: Check if keyring already exists and create it if it doesn't.
+      block:
+        - name: check if keyring to be created already exists
+          ibm.ibm_zos_core.zos_tso_command:
+            commands: LIST(KEYRING({{ keyring }}))
+          register: keyring_check
+    
+        - name: Create a new keyring via TSO commands, skip if it already exists.
+          ibm.ibm_zos_core.zos_tso_command:
+            commands: CREATE KEYRING({{ keyring }})
+          when: keyring_check.get_output_lines[0][0] != 'KEYRING(keyring)'.upper()
+    
+    - name: If cn is undefined get FQDN of this z/OS server from USS.
+      ansible.builtin.command: whoami
+      register: whoami_out
+      delegate_to: localhost
+    
+    - name: Set cn fact from previous task, if cn is undefined
+      ansible.builtin.set_fact:
+        cn: "{{ whoami_out.stdout }}"
+      when: cn is undefined
+    
+    - name: Check if certificate already exists and create it if it doesn't.
+      block:
+        - name: 'Check if cert to be created already exists.'
+          ibm.ibm_zos_core.zos_tso_command:
+            commands: LIST(CERTIFICATE({{ owner_id }},{{ cert_label }}))
+          register: cert_check
+        
+        - name: Create new USER cert and connect to keyring.
+          ibm.ibm_zos_core.zos_tso_command:
+            commands:
+              - CREATE CERTIFICATE({{ owner_id }},{{ cert_label }},{{ cn }},{{ ou }},{{ country
+                }},{{ keyring }},{{ expiry_date }})
+              - SET(CERTAUTH(CERTAUTH({{ owner_id }},{{ cert_label }})))
+              - CONNECT(CERTAUTH(CERTAUTH({{ owner_id }},{{ cert_label }})))
+          when: cert_check.get_output_lines[0][0] != 'CERTAUTH(CERTAUTH(owner_id,cert_label)'.upper()
+
+    - name: Run Health Checker via operator command.
+      ibm.ibm_zos_operator.operator_command:
+        cmd: health-check
+    
+
+
+
+  
+
+      
