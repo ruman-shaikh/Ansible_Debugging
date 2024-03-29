@@ -23,8 +23,10 @@
       block:
         - name: check if keyring to be created already exists
           ibm.ibm_zos_core.zos_tso_command:
-            commands: LIST(KEYRING({{ keyring }}))
+            commands: RACDCERT LISTRING({{ keyring }}) ID({{ owner_id }})
           register: keyring_check
+          failed_when: false
+          changed_when: false
     
         - name: Create a new keyring via TSO commands, skip if it already exists.
           ibm.ibm_zos_core.zos_tso_command:
