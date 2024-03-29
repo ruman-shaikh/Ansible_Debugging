@@ -59,7 +59,7 @@
                 }},{{ keyring }},{{ expiry_date }})
               - SET(CERTAUTH(CERTAUTH({{ owner_id }},{{ cert_label }})))
               - CONNECT(CERTAUTH(CERTAUTH({{ owner_id }},{{ cert_label }})))
-          when: cert_check.get_output_lines[0][0] != 'CERTAUTH(CERTAUTH(owner_id,cert_label)'.upper()
+          when: "'Digital certificate information for' not in cert_check.output[0].content[0]"
 
     - name: Run Health Checker via operator command.
       ibm.ibm_zos_core.zos_operator:
