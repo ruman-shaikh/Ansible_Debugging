@@ -31,7 +31,7 @@
         - name: Create a new keyring via TSO commands, skip if it already exists.
           ibm.ibm_zos_core.zos_tso_command:
             commands: CREATE KEYRING({{ keyring }})
-          when: keyring_check.get_output_lines[0][0] != 'KEYRING(keyring)'.upper()
+          when: "'IRRD114I Ring ' + keyring + ' does not exist.' in keyring_check.output[0].content[0]"
     
     - name: If cn is undefined get FQDN of this z/OS server from USS.
       ansible.builtin.command: whoami
