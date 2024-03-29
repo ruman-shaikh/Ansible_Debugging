@@ -47,8 +47,10 @@
       block:
         - name: 'Check if cert to be created already exists.'
           ibm.ibm_zos_core.zos_tso_command:
-            commands: LIST(CERTIFICATE({{ owner_id }},{{ cert_label }}))
+            commands: "RACDCERT ID({{ owner_id }}) LIST(LABEL('{{ cert_label }}'))"
           register: cert_check
+          failed_when: false
+          changed_when: false
         
         - name: Create new USER cert and connect to keyring.
           ibm.ibm_zos_core.zos_tso_command:
