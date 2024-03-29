@@ -61,7 +61,7 @@
               - RACDCERT LISTCHAIN(LABEL('{{ cert_label }}')) ID({{ owner_id }})
           when: "'Digital certificate information for' not in cert_check.output[0].content[0]"
 
-    - name: Run Health Checker via operator command.
-      ibm.ibm_zos_core.zos_operator:
-        cmd: "F HZSPROC,RUN,CHECK=({{ check_name }})"
-      changed_when: false
+    # - name: Run Health Checker via operator command.
+    #   ibm.ibm_zos_core.zos_operator:
+    #     cmd: "F HZSPROC,RUN,CHECK=({{ check_name }})"
+    #   changed_when: false
