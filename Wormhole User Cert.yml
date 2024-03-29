@@ -1,6 +1,3 @@
-###############################################################################
-# © Copyright IBM Corporation 2020, 2021 
-###############################################################################
 
 - hosts: zos_host
   collections:
@@ -23,15 +20,13 @@
       block:
         - name: check if keyring to be created already exists
           ibm.ibm_zos_core.zos_tso_command:
-            commands: LIST(CERTIFICATE({{ owner_id }},{{ cert_label }}))
+            commands: LIST(KEYRING({{ keyring }}))
           register: keyring_check
-          failed_when: false
-          changed_when: false
     
         - name: Create a new keyring via TSO commands, skip if it already exists.
           ibm.ibm_zos_core.zos_tso_command:
             commands: CREATE KEYRING({{ keyring }})
-          when: "'IRRD114I Ring ' + keyring + ' does not exist.' in keyring_check.output[0].content[0]"
+          when: keyring_check.get_output_lines[0][0] != 'KEYRING(keyring)'.upper()
     
     - name: If cn is undefined get FQDN of this z/OS server from USS.
       ansible.builtin.command: whoami
@@ -60,9 +55,8 @@
           when: cert_check.get_output_lines[0][0] != 'CERTAUTH(CERTAUTH(owner_id,cert_label)'.upper()
 
     - name: Run Health Checker via operator command.
-      ibm.ibm_zos_core.zos_operator:
-        cmd: "F HZSPROC,RUN,CHECK=({{ check_name }})"
-      changed_when: false
+      ibm.ibm_zos_operator.operator_command:
+        cmd: health-check
     
 
 
