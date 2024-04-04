@@ -1,0 +1,27 @@
+- name: Create z/OS keyring via TSO commands.
+  hosts: zos_host
+  gather_facts: false
+  environment: "{{ environment_vars }}"
+  vars:
+    owner_id: "{{ owner_id_survey | default('IBMUSER') }}"
+    keyring: "{{ keyring_survey | default('SharedRing1') }}"
+
+  tasks:
+
+    - name: Check if keyring already exists and create it if it doesn't.
+      block:
+        - name: Check if keyring to be created already exists.
+          ibm.ibm_zos_core.zos_tso_command:
+            commands: LIST( {{ keyring }} )
+          register: keyring_exists
+          failed_when: keyring_exists.get_output_lines | length > 0
+
+    - name: Create a new keyring via TSO commands, skip if it already exists.
+      ibm.ibm_zos_core.zos_tso_command:
+        commands:
+          - SETROPTS(KEYRING({{ keyring }}))
+          - SETROPTS(CREATE(YES))
+          - SETROPTS(SUBSET(YES))
+          - QSYS/CRTKRN KRING({{ keyring }}) AUTONAME(USER({{ owner_id }}))
+      when: keyring_exists.get_output_lines | length == 0
+    
